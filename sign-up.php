@@ -209,4 +209,5 @@ if(isset($_POST['submit'])){
     </section>
     </div>
 
-<?php include('includes/scripts.php');?>
+<?php include('includes/scripts.php');?> -->
+<!-- .. -->
