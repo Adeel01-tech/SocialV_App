@@ -1,15 +1,7 @@
 
  <?php
-session_start();
-if(!isset($_SESSION['user_id'])){
 
-   header("Location: sign-in.php");
-
-}
-include_once 'includes/head.php';
-include_once 'includes/header.php';
-include_once 'includes/sidebar.php';
-include_once 'includes/right-sidebar.php';
+include_once 'includes/layout.php';
 
 ?>
 

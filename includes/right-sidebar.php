@@ -1,4 +1,13 @@
-  <body class="  ">
+<?php
+
+
+
+include_once 'includes/layout.php';
+
+?>
+
+
+<body class="  ">
     <!-- loader Start -->
     <div id="loading">
           <div id="loading-center">

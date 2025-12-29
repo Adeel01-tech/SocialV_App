@@ -1,8 +1,6 @@
 <?php
 
-session_start();
 
-include("connection_db.php");
 require 'vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
 

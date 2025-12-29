@@ -1,17 +1,8 @@
 <?php
 
-session_start();
 
-include('includes/head.php');
-include('includes/header.php');
-include('includes/right-sidebar.php');
-include("connection_db.php");
+include_once 'includes/layout.php';
 
-if (!isset($_SESSION['user_id'])) {
-   
-    header("Location: sign-in.php");
-    exit();
-}
 
 $user_id = $_SESSION['user_id'];
 
@@ -62,6 +53,7 @@ if (isset($_POST['submit'])) {
     $address        = mysqli_real_escape_string($conn, $_POST['address'] ?? '');
     $contact        = mysqli_real_escape_string($conn, $_POST['contact'] ?? '');
     $url            = mysqli_real_escape_string($conn, $_POST['url'] ?? '');
+
 
     $profile_pic = $user['profile_pic'] ?? '';
 

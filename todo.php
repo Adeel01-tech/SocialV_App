@@ -1,9 +1,12 @@
-<?php 
-include('includes/head.php');
-include('includes/header.php');
-include_once 'includes/right-sidebar.php';
+<?php
+
+
+
+include_once 'includes/layout.php';
 
 ?>
+
+
 
 
 

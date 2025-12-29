@@ -1,11 +1,6 @@
 <?php
 
-
-
-include('includes/head.php');
-require_once('includes/header.php');
-include('includes/right-sidebar.php');
-include("connection_db.php");
+include_once 'includes/layout.php';
 
 ?>
 

@@ -1,4 +1,11 @@
-  <div class="right-sidebar-mini right-sidebar">
+<?php
+
+include_once 'includes/layout.php';
+
+?>
+
+
+<div class="right-sidebar-mini right-sidebar">
            <div class="right-sidebar-panel p-0">
               <div class="card shadow-none">
                  <div class="card-body p-0">

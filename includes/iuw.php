@@ -1,29 +1,177 @@
 <?php
 
+session_start();
+
+include('includes/head.php');
+include("connection_db.php");
+
+if (!isset($_SESSION['user_id'])) {
+   
+    header("Location: sign-in.php");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+
+$user    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM user_tb WHERE id = '$user_id'"));
 
 
-include_once 'includes/layout.php';
+//manage contact 
+
+if (!isset($_POST['submit_contact'])) {
+
+    $contact = $user['contact_number'] ?? '';
+
+    $url     = $user['url'] ?? '';
+
+} else {
+
+    $contact = mysqli_real_escape_string($conn, $_POST['contact'] ?? '');
+
+    $url     = mysqli_real_escape_string($conn, $_POST['url'] ?? '');
+
+    // contact update query
+
+    mysqli_query($conn, "
+
+    UPDATE user_tb SET contact_number = '$contact', url = '$url' WHERE id = '$user_id'");
+
+    $user = mysqli_fetch_assoc(
+
+        mysqli_query($conn, "SELECT * FROM user_tb WHERE id = '$user_id'")
+    );
+}
+
+// profile form
+
+$success = "";
+
+if (isset($_POST['submit'])) {
+
+    $first_name     = mysqli_real_escape_string($conn, $_POST['first_name'] ?? '');
+    $last_name      = mysqli_real_escape_string($conn, $_POST['last_name'] ?? '');
+    $username       = mysqli_real_escape_string($conn, $_POST['username'] ?? '');
+    $city           = mysqli_real_escape_string($conn, $_POST['city'] ?? '');
+    $birth_date     = $_POST['birth_date'] ?? '';
+    $gender         = mysqli_real_escape_string($conn, $_POST['gender'] ?? '');
+    $marital_status = mysqli_real_escape_string($conn, $_POST['marital_status'] ?? '');
+    $country        = mysqli_real_escape_string($conn, $_POST['country'] ?? '');
+    $state          = mysqli_real_escape_string($conn, $_POST['state'] ?? '');
+    $address        = mysqli_real_escape_string($conn, $_POST['address'] ?? '');
+    $contact        = mysqli_real_escape_string($conn, $_POST['contact'] ?? '');
+    $url            = mysqli_real_escape_string($conn, $_POST['url'] ?? '');
+
+    $profile_pic = $user['profile_pic'] ?? '';
+
+    if (!empty($_FILES['profile_pic']['name'])) {
+
+        $ext = pathinfo($_FILES['profile_pic']['name'], PATHINFO_EXTENSION);
+        $profile_pic = "user_{$user_id}_" . time() . "." . $ext;
+        
+        $upload_dir = "../assets/images/users/";
+
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+
+        $upload_path = $upload_dir . $profile_pic;
+
+        // Upload success check 
+        if (move_uploaded_file($_FILES['profile_pic']['tmp_name'], $upload_path)) {
+        
+        } else {
+
+            $profile_pic = $user['profile_pic'] ?? '';
+        }
+    }
+
+       $update_sql = "UPDATE user_tb SET 
+        first_name='$first_name',
+        last_name='$last_name',
+        username='$username',
+        city='$city',
+        birth_date='$birth_date',
+        gender='$gender',
+        marital_status='$marital_status',
+        country='$country',
+        state='$state',
+        address='$address',
+        profile_pic='$profile_pic',
+        contact_number='$contact',
+        url='$url'
+        WHERE id='$user_id'";
+
+    if (mysqli_query($conn, $update_sql)) {
+
+        $success = "Profile updated successfully!";
+
+        $user = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM user_tb WHERE id = '$user_id'")
+        
+    );
+
+    } else {
+    
+        die("Database Error: " . mysqli_error($conn));
+    }
+}
+
+$photo = (!empty($user['profile_pic']) &&
+
+    file_exists("../assets/images/users/" . $user['profile_pic'])) ? "assets/images/users/" . $user['profile_pic'] : "assets/images/user/01.jpg";
+
+
+// change pass
+$pass_error = "";
+$pass_success = "";
+
+if (isset($_POST['change_pass'])) {
+
+    $old_pass     = $_POST['old_pass'] ?? '';
+    $new_pass     = $_POST['new_pass'] ?? '';
+    $confirm_pass = $_POST['confirm_pass'] ?? '';
+
+    $result = mysqli_query($conn,"SELECT password FROM user_tb WHERE id = '$user_id'"
+    
+);
+
+    $row = mysqli_fetch_assoc($result);
+    $hashed_db_pass = $row['password'] ?? '';
+
+    if (!password_verify($old_pass, $hashed_db_pass)) {
+
+        $pass_error = "Current password is wrong";
+    }
+    elseif ($new_pass != $confirm_pass) {
+
+        $pass_error = "New password and Confirm password not match";
+    }
+    elseif (strlen($new_pass) < 6) {
+
+        $pass_error = "New password required must be 6 character!";
+    }
+
+    else {
+
+        $new_hashed_pass = password_hash($new_pass, PASSWORD_DEFAULT);
+
+        $update = mysqli_query(
+            $conn,
+            "UPDATE user_tb SET password='$new_hashed_pass' WHERE id='$user_id'"
+        );
+
+        if ($update) {
+            $pass_success = "Password successfully change";
+        } else {
+            $pass_error = "Database error";
+        }
+    }
+}
+
 
 ?>
- 
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-      <title>SocialV | Responsive Bootstrap 5 Admin Dashboard Template</title>
-      
-      <link rel="shortcut icon" href="../assets/images/favicon.ico" />
-      <link rel="stylesheet" href="../assets/css/libs.min.css">
-      <link rel="stylesheet" href="../assets/css/socialv.css?v=4.0.0">
-      <link rel="stylesheet" href="../assets/vendor/@fortawesome/fontawesome-free/css/all.min.css">
-      <link rel="stylesheet" href="../assets/vendor/remixicon/fonts/remixicon.css">
-      <link rel="stylesheet" href="../assets/vendor/vanillajs-datepicker/dist/css/datepicker.min.css">
-      <link rel="stylesheet" href="../assets/vendor/font-awesome-line-awesome/css/all.min.css">
-      <link rel="stylesheet" href="../assets/vendor/line-awesome/dist/line-awesome/css/line-awesome.min.css">
-      
-  </head>
+
+
   <body class="  ">
     <!-- loader Start -->
     <div id="loading">
@@ -32,6 +180,7 @@ include_once 'includes/layout.php';
     </div>
     <!-- loader END -->
     <!-- Wrapper Start -->
+     
     <div class="wrapper">
       <div class="iq-sidebar  sidebar-default ">
           <div id="sidebar-scrollbar">
@@ -635,7 +784,9 @@ include_once 'includes/layout.php';
                   </div>
               </nav>
           </div>
-      </div>       <div class="right-sidebar-mini right-sidebar">
+      </div> 
+      
+      <div class="right-sidebar-mini right-sidebar">
            <div class="right-sidebar-panel p-0">
               <div class="card shadow-none">
                  <div class="card-body p-0">
@@ -738,318 +889,329 @@ include_once 'includes/layout.php';
                  </div>
               </div>
            </div>
-        </div>       <div id="content-page" class="content-page">
+        </div>       
+        <div id="content-page" class="content-page">
     <div class="container">
         <div class="row">
-            <div class="col-sm-12">
+            <div class="col-lg-12">
                 <div class="card">
-                <div class="card-header d-flex justify-content-between">
-                    <div class="header-title">
-                        <h4 class="card-title">Files</h4>
-                    </div>
-                    <div class="card-header-toolbar d-flex align-items-center">
-                        <div class="dropdown">
-                            <span class="dropdown-btoggle text-primary" id="dropdownMenuButton5" data-bs-toggle="dropdown">
-                                <i class="ri-more-2-fill h4"></i>
-                            </span>
-                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton5">
-                            <a class="dropdown-item" href="#"><i class="ri-eye-fill me-2"></i>View</a>
-                            <a class="dropdown-item" href="#"><i class="ri-delete-bin-6-fill me-2"></i>Delete</a>
-                            <a class="dropdown-item" href="#"><i class="ri-pencil-fill me-2"></i>Edit</a>
-                            <a class="dropdown-item" href="#"><i class="ri-printer-fill me-2"></i>Print</a>
-                            <a class="dropdown-item" href="#"><i class="ri-file-download-fill me-2"></i>Download</a>
-                            </div>
+                    <div class="card-body p-0">
+                        <div class="iq-edit-list">
+                            <ul class="iq-edit-profile row nav nav-pills">
+                                <li class="col-md-3 p-0">
+                                    <a class="nav-link active" data-bs-toggle="pill" href="#personal-information">
+                                        Personal Information
+                                    </a>
+                                </li>
+                                <li class="col-md-3 p-0">
+                                    <a class="nav-link" data-bs-toggle="pill" href="#chang-pwd">
+                                        Change Password
+                                    </a>
+                                </li>
+                                <li class="col-md-3 p-0">
+                                    <a class="nav-link" data-bs-toggle="pill" href="#emailandsms">
+                                        Email and SMS
+                                    </a>
+                                </li>
+                                <li class="col-md-3 p-0">
+                                    <a class="nav-link" data-bs-toggle="pill" href="#manage-contact">
+                                        Manage Contact
+                                    </a>
+                                </li>
+                            </ul>
                         </div>
                     </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <div class="row justify-content-between d-flex">
-                            <div class="col-sm-12 col-md-6">
-                            <div id="user_list_datatable_info" class="dataTables_filter">
-                                <form class="me-3 position-relative">
-                                    <div class="form-group mb-0">
-                                        <input type="search" class="form-control" id="exampleInputSearch" placeholder="Search">
-                                    </div>
-                                </form>
-                            </div>
-                            </div>
-                            <div class="col-sm-12 col-md-6">
-                            <div class="user-list-files d-flex justify-content-end">
-                                <a href="#" class="chat-icon-phone btn bg-soft-primary">
-                                Print
-                                </a>
-                                <a href="#" class="chat-icon-video btn bg-soft-primary">
-                                Excel
-                                </a>
-                                <a href="#" class="chat-icon-delete btn bg-soft-primary">
-                                Pdf
-                                </a>
-                            </div>
-                            </div>
-                        </div>
-                        <table class="files-lists table table-striped mt-4">
-                            <thead>
-                            <tr>
-                                <th scope="col">
-                                    <div class=" text-center">
-                                        <input type="checkbox" class="form-check-input">
-                                    </div>
-                                </th>
-                                <th scope="col">File Name</th>
-                                <th scope="col">File Type</th>
-                                <th scope="col">Date</th>
-                                <th scope="col">Size</th>
-                                <th scope="col">Author</th>
-                                <th scope="col">Action</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <td>
-                                    <div class=" text-center">
-                                        <input type="checkbox" class="form-check-input">
-                                    </div>
-                                </td>
-                                <td>
-                                    <img class="rounded-circle img-fluid avatar-40 me-2" src="../assets/images/page-img/43.png" alt="profile"> post report
-                                </td>
-                                <td>Document</td>
-                                <td>
-                                    Mar 12, 2020
-                                </td>
-                                <td>390 kb</td>
-                                <td>
-                                    Anna Sthesia
-                                </td>
-                                <td>
-                                    <div class="flex align-items-center list-user-action">
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Download" href="#"><i class="ri-download-line"></i></a>
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Delete" href="#"><i class="ri-delete-bin-line"></i></a>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class=" text-center">
-                                        <input type="checkbox" class="form-check-input">
-                                    </div>
-                                </td>
-                                <td>
-                                    <img class="rounded-circle img-fluid avatar-40 me-2" src="../assets/images/page-img/44.png" alt="profile"> usages
-                                </td>
-                                <td>Document</td>
-                                <td>
-                                    Mar 18, 2020
-                                </td>
-                                <td>600 kb</td>
-                                <td>
-                                    Paul Molive
-                                </td>
-                                <td>
-                                    <div class="flex align-items-center list-user-action">
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Download" href="#"><i class="ri-download-line"></i></a>
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Delete" href="#"><i class="ri-delete-bin-line"></i></a>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class=" text-center">
-                                        <input type="checkbox" class="form-check-input">
-                                    </div>
-                                </td>
-                                <td>
-                                    <img class="rounded-circle img-fluid avatar-40 me-2" src="../assets/images/page-img/45.png" alt="profile"> Images file
-                                </td>
-                                <td>Slide</td>
-                                <td>
-                                    Mar 19, 2020
-                                </td>
-                                <td>800 kb</td>
-                                <td>
-                                    Bob Frapples
-                                </td>
-                                <td>
-                                    <div class="flex align-items-center list-user-action">
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Download" href="#"><i class="ri-download-line"></i></a>
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Delete" href="#"><i class="ri-delete-bin-line"></i></a>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class=" text-center">
-                                        <input type="checkbox" class="form-check-input">
-                                    </div>
-                                </td>
-                                <td>
-                                    <img class="rounded-circle img-fluid avatar-40 me-2" src="../assets/images/page-img/46.png" alt="profile"> total comments
-                                </td>
-                                <td>Document</td>
-                                <td>
-                                    Mar 21, 2020
-                                </td>
-                                <td>500 kb</td>
-                                <td>
-                                    Barb Ackue
-                                </td>
-                                <td>
-                                    <div class="flex align-items-center list-user-action">
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Download" href="#"><i class="ri-download-line"></i></a>
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Delete" href="#"><i class="ri-delete-bin-line"></i></a>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class=" text-center">
-                                        <input type="checkbox" class="form-check-input">
-                                    </div>
-                                </td>
-                                <td>
-                                    <img class="rounded-circle img-fluid avatar-40 me-2" src="../assets/images/page-img/47.png" alt="profile"> popular events
-                                </td>
-                                <td>Pdf</td>
-                                <td>
-                                    Mar 24, 2020
-                                </td>
-                                <td>320 kb</td>
-                                <td>
-                                    Barb Ackue
-                                </td>
-                                <td>
-                                    <div class="flex align-items-center list-user-action">
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Download" href="#"><i class="ri-download-line"></i></a>
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Delete" href="#"><i class="ri-delete-bin-line"></i></a>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class=" text-center">
-                                        <input type="checkbox" class="form-check-input">
-                                    </div>
-                                </td>
-                                <td>
-                                    <img class="rounded-circle img-fluid avatar-40 me-2" src="../assets/images/page-img/43.png" alt="profile"> todo list
-                                </td>
-                                <td>excel</td>
-                                <td>
-                                    Mar 28, 2020
-                                </td>
-                                <td>600 kb</td>
-                                <td>
-                                    Ira Membrit
-                                </td>
-                                <td>
-                                    <div class="flex align-items-center list-user-action">
-                                       <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Download" href="#"><i class="ri-download-line"></i></a>
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Delete" href="#"><i class="ri-delete-bin-line"></i></a>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <div class=" text-center">
-                                        <input type="checkbox" class="form-check-input">
-                                    </div>
-                                </td>
-                                <td>
-                                    <img class="rounded-circle img-fluid avatar-40 me-2" src="../assets/images/page-img/45.png" alt="profile"> music list
-                                </td>
-                                <td>pdf</td>
-                                <td>
-                                    Mar 30, 2020
-                                </td>
-                                <td>900 kb</td>
-                                <td>
-                                    Pete Sariya
-                                </td>
-                                <td>
-                                    <div class="flex align-items-center list-user-action">
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Download" href="#"><i class="ri-download-line"></i></a>
-                                        <a data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Delete" href="#"><i class="ri-delete-bin-line"></i></a>
-                                    </div>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
                 </div>
             </div>
-        </div>
-    </div>    
-      </div>
-    </div>
-    <!-- Wrapper End-->
-    <footer class="iq-footer bg-white">
-       <div class="container-fluid">
-          <div class="row">
-             <div class="col-lg-6">
-                <ul class="list-inline mb-0">
-                   <li class="list-inline-item"><a href="../dashboard/privacy-policy.html">Privacy Policy</a></li>
-                   <li class="list-inline-item"><a href="../dashboard/terms-of-service.html">Terms of Use</a></li>
-                </ul>
-             </div>
-             <div class="col-lg-6 d-flex justify-content-end">
-                Copyright 2020 <a href="#">SocialV</a> All Rights Reserved.
-             </div>
-          </div>
-       </div>
-    </footer>    <!-- Backend Bundle JavaScript -->
-    <script src="../assets/js/libs.min.js"></script>
-    <!-- slider JavaScript -->
-    <script src="../assets/js/slider.js"></script>
-    <!-- masonry JavaScript --> 
-    <script src="../assets/js/masonry.pkgd.min.js"></script>
-    <!-- SweetAlert JavaScript -->
-    <script src="../assets/js/enchanter.js"></script>
-    <!-- SweetAlert JavaScript -->
-    <script src="../assets/js/sweetalert.js"></script>
-    <!-- app JavaScript -->
-    <script src="../assets/js/charts/weather-chart.js"></script>
-    <script src="../assets/js/app.js"></script>
-    <script src="../vendor/vanillajs-datepicker/dist/js/datepicker.min.js"></script>
-    <script src="../assets/js/lottie.js"></script>
-    
+            <div class="col-lg-12">
+                <div class="iq-edit-list-data">
+                    <div class="tab-content">
+                        <div class="tab-pane fade active show" id="personal-information" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between">
+                                    <div class="header-title">
+                                        <h4 class="card-title">Personal Information</h4>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+   <form method="POST" enctype="multipart/form-data">
 
-    <!-- offcanvas start -->
- 
-    <div class="offcanvas offcanvas-bottom share-offcanvas" tabindex="-1" id="share-btn" aria-labelledby="shareBottomLabel">
-       <div class="offcanvas-header">
-          <h5 class="offcanvas-title" id="shareBottomLabel">Share</h5>
-          <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-       </div>
-       <div class="offcanvas-body small">
-          <div class="d-flex flex-wrap align-items-center">
-             <div class="text-center me-3 mb-3">
-                <img src="../assets/images/icon/08.png" class="img-fluid rounded mb-2" alt="">
-                <h6>Facebook</h6>
-             </div>
-             <div class="text-center me-3 mb-3">
-                <img src="../assets/images/icon/09.png" class="img-fluid rounded mb-2" alt="">
-                <h6>Twitter</h6>
-             </div>
-             <div class="text-center me-3 mb-3">
-                <img src="../assets/images/icon/10.png" class="img-fluid rounded mb-2" alt="">
-                <h6>Instagram</h6>
-             </div>
-             <div class="text-center me-3 mb-3">
-                <img src="../assets/images/icon/11.png" class="img-fluid rounded mb-2" alt="">
-                <h6>Google Plus</h6>
-             </div>
-             <div class="text-center me-3 mb-3">
-                <img src="../assets/images/icon/13.png" class="img-fluid rounded mb-2" alt="">
-                <h6>In</h6>
-             </div>
-             <div class="text-center me-3 mb-3">
-                <img src="../assets/images/icon/12.png" class="img-fluid rounded mb-2" alt="">
-                <h6>YouTube</h6>
-             </div>
-          </div>
-       </div>
+    <div class="form-group row align-items-center">
+        <div class="col-md-12">
+            <div class="profile-img-edit">
+                <!-- Display current image from DB or default -->
+                <img class="profile-pic"
+                     src="<?php echo !empty($photo) ? '../'.$photo : '../assets/images/user/11.png'; ?>"
+                     alt="profile-pic">
+
+                <div class="p-image">
+                    <label class="upload-button text-white" style="cursor:pointer;">
+                        <i class="ri-pencil-line"></i>
+                        <input class="file-upload"
+                               type="file"
+                               name="profile_pic"
+                               accept="image/*"
+                               style="display:none;">
+                    </label>
+                </div>
+        </div>
     </div>
-  </body>
-</html>
+
+    <div class="row align-items-center">
+        <div class="form-group col-sm-6">
+            <label for="fname" class="form-label">First Name:</label>
+            <input type="text" class="form-control" id="fname" name="first_name" placeholder="Bni">
+        </div>
+        <div class="form-group col-sm-6">
+            <label for="lname" class="form-label">Last Name:</label>
+            <input type="text" class="form-control" id="lname" name="last_name" placeholder="Jhon">
+        </div>
+        <div class="form-group col-sm-6">
+            <label for="uname" class="form-label">User Name:</label>
+            <input type="text" class="form-control" id="uname" name="username" placeholder="Bni@01">
+        </div>
+        <div class="form-group col-sm-6">
+            <label for="cname" class="form-label">City:</label>
+            <input type="text" class="form-control" id="cname" name="city" placeholder="Atlanta">
+        </div>
+
+        <div class="form-group col-sm-6">
+            <label class="form-label d-block">Gender:</label>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="gender" id="male" value="Male">
+                <label class="form-check-label" for="male">Male</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="gender" id="female" value="Female">
+                <label class="form-check-label" for="female">Female</label>
+            </div>
+        </div>
+
+        <div class="form-group col-sm-6">
+            <label for="dob" class="form-label">Date Of Birth:</label>
+            <input type="date" class="form-control" id="dob" name="dob">
+        </div>
+
+        <div class="form-group col-sm-6">
+            <label class="form-label">Marital Status:</label>
+            <select class="form-select" name="marital_status">
+                <option selected>Single</option>
+                <option>Married</option>
+                <option>Widowed</option>
+                <option>Divorced</option>
+                <option>Separated</option>
+            </select>
+        </div>
+
+        <div class="form-group col-sm-6">
+            <label class="form-label">Age:</label>
+            <select class="form-select" name="age">
+                <option>46-62</option>
+                <option>63 &gt;</option>
+            </select>
+        </div>
+
+        <div class="form-group col-sm-6">
+            <label class="form-label">Country:</label>
+            <select class="form-select" name="country">
+                <option>Canada</option>
+                <option>Noida</option>
+                <option selected>USA</option>
+                <option>India</option>
+                <option>Africa</option>
+            </select>
+        </div>
+
+        <div class="form-group col-sm-6">
+            <label class="form-label">State:</label>
+            <select class="form-select" name="state">
+                <option>California</option>
+                <option>Florida</option>
+                <option selected>Georgia</option>
+                <option>Connecticut</option>
+                <option>Louisiana</option>
+            </select>
+        </div>
+
+        <div class="form-group col-sm-12">
+            <label class="form-label">Address:</label>
+            <textarea class="form-control" name="address" rows="5" style="line-height: 22px;">
+            37 Cardinal Lane    
+            Petersburg, VA 23803
+            United States of America
+            Zip Code: 85001
+            </textarea>
+        </div>
+    </div>
+<div class="mt-4">
+    <button type="submit" name="submit" class="btn btn-primary rounded px-4 py-2 me-3 fw-medium">
+        Submit
+    </button>
+    <button type="reset" class="btn bg-soft-danger text-danger rounded px-4 py-2 fw-medium">
+        Cancel
+    </button>
+</div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="chang-pwd" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between">
+                                <div class="iq-header-title">
+                                    <h4 class="card-title">Change Password</h4>
+                                </div>
+                                </div>
+                                <div class="card-body">
+                                <form method="POST">
+                                <div class="form-group">
+                                <label for="cpass" class="form-label">Current Password:</label>
+                                <a href="forgot-password.php" class="float-end text-primary">Forgot Password?</a>
+                                 <input type="password" name="old_pass" class="form-control" id="cpass" required>
+                            </div>
+
+                                <div class="form-group">
+                                <label for="npass" class="form-label">New Password:</label>
+                                <input type="password" name="new_pass" class="form-control" id="npass" required>
+                                </div>
+
+                                    <div class="form-group">
+                                        <label for="vpass" class="form-label">Verify Password:</label>
+                                        <input type="password" name="confirm_pass" class="form-control" id="vpass" required>
+                                        </div>
+
+                                        <button type="submit" name="change_pass" class="btn btn-primary me-2">Submit</button>
+                                        <button type="reset" class="btn bg-soft-danger">Cancel</button> 
+                               </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="emailandsms" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between">
+                                <div class="header-title">
+                                    <h4 class="card-title">Email and SMS</h4>
+                                </div>
+                                </div>
+                                <div class="card-body">
+                                <form>
+                                    <div class="form-group row align-items-center">
+                                        <label class="col-md-3" for="emailnotification">Email Notification:</label>
+                                        <div class="col-md-9 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="flexSwitchCheckChecked11" checked>
+                                            <label class="form-check-label" for="flexSwitchCheckChecked11">Checked switch checkbox input</label>
+                                     </div>
+                                    </div>
+                                    <div class="form-group row align-items-center">
+                                        <label class="col-md-3" for="smsnotification">SMS Notification:</label>
+                                        <div class="col-md-9 form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="flexSwitchCheckChecked12" checked>
+                                            <label class="form-check-label" for="flexSwitchCheckChecked12">Checked switch checkbox input</label>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row align-items-center">
+                                        <label class="col-md-3" for="npass">When To Email</label>
+                                        <div class="col-md-9">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" value="" id="flexCheckDefault12">
+                                                <label class="form-check-label" for="flexCheckDefault12">
+                                                    You have new notifications.
+                                                </label>
+                                            </div>
+                                            <div class="form-check d-block">
+                                                <input class="form-check-input" type="checkbox" value="" id="email02">
+                                                <label class="form-check-label" for="email02">You're sent a direct message</label>
+                                            </div>
+                                            <div class="form-check d-block">
+                                                <input type="checkbox" class="form-check-input" id="email03" checked="">
+                                                <label class="form-check-label" for="email03">Someone adds you as a connection</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row align-items-center">
+                                        <label class="col-md-3" for="npass">When To Escalate Emails</label>
+                                        <div class="col-md-9">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" value="" id="email04">
+                                                <label class="form-check-label" for="email04">
+                                                    Upon new order.
+                                                </label>
+                                            </div>
+                                            <div class="form-check d-block">
+                                                <input class="form-check-input" type="checkbox" value="" id="email05">
+                                                <label class="form-check-label" for="email05">New membership approval</label>
+                                            </div>
+                                            <div class="form-check d-block">
+                                                <input type="checkbox" class="form-check-input" id="email06" checked="">
+                                                <label class="form-check-label" for="email06">Member registration</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary me-2">Submit</button>
+                                    <button type="reset" class="btn bg-soft-danger">Cancle</button>
+                                </form>
+                                </div>
+                            </div>
+                        </div>
+                      <div class="tab-pane fade" id="manage-contact" role="tabpanel">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <div class="header-title">
+                <h4 class="card-title">Manage Contact</h4>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Success message (optional) -->
+            <?php if (!empty($success_contact ?? '')): ?>
+                <div class="alert alert-success mb-3"><?= htmlspecialchars($success_contact) ?></div>
+            <?php endif; ?>
+
+            <form method="POST">
+                <div class="form-group">
+                    <label for="contact" class="form-label">Contact Number:</label>
+                    <input type="text" name="contact" class="form-control" id="contact"
+                           value="<?php echo htmlspecialchars($user['contact'] ?? ''); ?>"
+                           placeholder="001 2536 123 458">
+                </div>
+                <div class="form-group">
+                    <label for="email" class="form-label">Email:</label>
+                    <input type="email" name="email" class="form-control" id="email"
+                           value="<?php echo htmlspecialchars($user['email'] ?? ''); ?>"
+                           placeholder="example@domain.com">
+                </div>
+                <div class="form-group">
+                    <label for="url" class="form-label">Url:</label>
+                    <input type="url" name="url" class="form-control" id="url"
+                           value="<?php echo htmlspecialchars($user['url'] ?? ''); ?>"
+                           placeholder="https://getbootstrap.com">
+                </div>
+                <button type="submit" name="submit_contact" class="btn btn-primary me-2">Submit</button>
+                <button type="reset" class="btn bg-soft-danger">Cancel</button>
+            </form>                               
+        </div>
+    </div>
+</div>
+            </div>
+      </div>
+   </div>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <?php include 'includes/scripts.php';?>
+
+
+
+
+
+ <?php
+
+require_once 'includes/head.php';
+require_once 'includes/header.php';
+require_once 'includes/sidebar.php';
+
+?>
+
+ <?php require_once 'includes/footer.php';?>
+   <?php require_once 'includes/scripts.php';?>
