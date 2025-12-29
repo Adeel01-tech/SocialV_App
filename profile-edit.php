@@ -4,7 +4,6 @@
 include_once 'includes/layout.php';
 
 
-$user_id = $_SESSION['user_id'];
 
 $user    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM user_tb WHERE id = '$user_id'"));
 
